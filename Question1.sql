@@ -1,104 +1,29 @@
 -- Q1 -> Total Sales for each part for a dealership.
+-- cost time = 38.4s
 SELECT
     dealernumber,
     part_number,
-    SUM(val) AS total_sales
+    SUM(value) AS total_sales
 FROM
     sales
 GROUP BY
     dealernumber,
     part_number;
+    
 
--- query of dealers with atleast 1 sale with more data points for dealer 
+-- Monthly wise sales
+-- cost time = 26.6s
 SELECT
-    e.dealernumber,
-    e.dealername,
-    e.division,
-    e.region,
-    sum(s.val) AS total_sales
-FROM
-    entity e
-INNER JOIN
-    sales s ON e.dealernumber = s.dealernumber
-GROUP BY
-    e.dealernumber,
+    s.dealernumber,
     s.part_number,
-    e.dealername,
-    e.division,
-    e.region
-
--- with all the dealers whether they have done any sales or not 
-SELECT
-    e.dealernumber,
-    e.dealername,
-    e.division,
-    e.region,
-    sum(s.val) AS total_sales
+    Sum(s.value) AS total_sales,
+    c.yearmonth AS month_of_sale
 FROM
-    entity e
-LEFT JOIN
-    sales s ON e.dealernumber = s.dealernumber
+    sales s
+INNER JOIN 
+    calendar c ON s.calendardate = c.calendardate::date
 GROUP BY
-    e.dealernumber,
+    s.dealernumber,
     s.part_number,
-    e.dealername,
-    e.division,
-    e.region
-
+    c.yearmonth 
                
--- query for dealers with atleast 1 sale with extra datapoints for parts  
-
-SELECT
-    e.dealernumber,
-    e.dealername,
-    e.division,
-    e.region,
-    s.part_number,
-    p.part_description,
-    p.part_category_1,
-    p.part_categry_2,
-    sum(s.val) AS total_sales
-FROM
-    entity e
-INNER JOIN
-    sales s ON e.dealernumber = s.dealernumber
-INNER JOIN
-    parts ON s.part_number = p.part_number     
-GROUP BY
-    e.dealernumber,
-    e.dealername,
-    e.division,
-    e.region,
-    s.part_number,
-    p.part_description,
-    p.part_category_1,
-    p.part_categry_2
-
--- query for dealers whether they have done any sales or not with extra datapoints for parts  
-
-SELECT
-    e.dealernumber,
-    e.dealername,
-    e.division,
-    e.region,
-    s.part_number,
-    p.part_description,
-    p.part_category_1,
-    p.part_categry_2,
-    sum(s.val) AS total_sales
-FROM
-    entity e
-LEFT JOIN
-    sales s ON e.dealernumber = s.dealernumber
-LEFT JOIN
-    parts p ON s.part_number = p.part_number     
-GROUP BY
-    e.dealernumber,
-    e.dealername,
-    e.division,
-    e.region,
-    s.part_number,
-    p.part_description,
-    p.part_category_1,
-    p.part_categry_2
-        

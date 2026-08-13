@@ -1,45 +1,24 @@
 -- Q4 -> Total Units sold by a dealership.
-
+-- cost time = 1.6s
 SELECT
     dealernumber,
-    SUM(units) AS total_units
+    SUM(units) AS total_units_sold
 FROM 
     sales
 GROUP BY
     dealernumber; 
 
--- with more data points for dealer 
+-- with monthly wise sales
+-- cost time 7.7s
 SELECT
-    e.dealernumber,
-    e.dealername,
-    e.division,
-    e.region,
-    SUM(s.units) AS total_units
-FROM
-    entity e
+    s.dealernumber,
+    SUM(s.units) AS total_units_sold,
+    c.yearmonth AS month_of_sale
+FROM 
+    sales s 
 INNER JOIN
-    sales s ON e.dealernumber = s.dealernumber
+    calendar c ON s.calendardate = c.calendardate::date    
 GROUP BY
-    e.dealernumber,
-    e.dealername,
-    e.division,
-    e.region
-
--- with all the dealers whether they have done any sales or not 
-SELECT
-    e.dealernumber,
-    e.dealername,
-    e.division,
-    e.region,
-    SUM(s.units) AS total_units
-FROM
-    entity e
-LEFT JOIN
-    sales s ON e.dealernumber = s.dealernumber
-GROUP BY
-    e.dealernumber,
-    e.dealername,
-    e.division,
-    e.region
-     
-
+    dealernumber,
+    c.yearmonth;
+    
