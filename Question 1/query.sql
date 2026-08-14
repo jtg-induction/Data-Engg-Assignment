@@ -6,9 +6,9 @@ SELECT
     SUM(value) AS total_sales
 FROM
     sales
-GROUP BY
-    dealernumber,
-    part_number;
+-- GROUP BY
+--     dealernumber,
+--     part_number;
     
 
 -- Monthly wise sales
@@ -17,13 +17,11 @@ SELECT
     s.dealernumber,
     s.part_number,
     Sum(s.value) AS total_sales,
-    c.yearmonth AS month_of_sale
+    to_char(s.calendardate::date,'YYYY FMMonth') as month_of_sale
 FROM
     sales s
-INNER JOIN 
-    calendar c ON s.calendardate = c.calendardate::date
 GROUP BY
     s.dealernumber,
     s.part_number,
-    c.yearmonth 
+    to_char(s.calendardate::date,'YYYY FMMonth');
                

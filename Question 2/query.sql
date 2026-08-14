@@ -16,13 +16,11 @@ SELECT
     s.dealernumber,
     s.part_number,
     Sum(s.units) AS total_units_sold,
-    c.yearmonth AS month_of_sale
+    to_char(s.calendardate::date,'YYYY FMMonth') as month_of_sale
 FROM
     sales s
-INNER JOIN 
-    calendar c ON s.calendardate = c.calendardate::date
 GROUP BY
     s.dealernumber,
     s.part_number,
-    c.yearmonth
+    to_char(s.calendardate::date,'YYYY FMMonth');
     
