@@ -5,9 +5,11 @@
 --          d. Tier 4: If Monthly Sales > 125% of objective
 
 
+--cost time = 55.7s
+
 SELECT
     s.dealernumber,
-    c.yearmonth,
+    to_char(s.calendardate::date,'YYYY FMMonth') as month_of_sale,
     CASE 
         WHEN SUM(s.value) < (0.9 * o.sales_obj::numeric) THEN 'Tier 1'
         WHEN SUM(s.value) >= (0.9 * o.sales_obj::numeric) AND (SUM(s.value) < o.sales_obj::numeric) THEN 'Tier 2'
@@ -15,11 +17,9 @@ SELECT
         ELSE 'Tier 4'  
     END AS tier_level
 FROM
-    sales s
+    sales s    
 INNER JOIN
-    calendar c ON s.calendardate = c.calendardate::date    
-INNER JOIN
-    objectives o ON s.dealernumber = o.dealer AND c.yearmonthsort = o.month
+    objectives o ON s.dealernumber = o.dealer AND to_char(s.calendardate::date,'YYYYMM') = o.month
 INNER JOIN
     parts p ON s.part_number = p.part_number
 WHERE
@@ -27,5 +27,5 @@ WHERE
 GROUP BY
     s.dealernumber,
     o.sales_obj,
-    c.yearmonth;
+    month_of_sale;
     

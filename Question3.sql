@@ -15,12 +15,10 @@ GROUP BY
 SELECT
     s.dealernumber,
     SUM(s.value) AS total_sales,
-    c.yearmonth AS month_of_sale
+    to_char(s.calendardate::date,'YYYY FMMonth') as month_of_sale
 FROM 
-    sales s 
-INNER JOIN
-    calendar c ON s.calendardate = c.calendardate::date    
+    sales s    
 GROUP BY
     dealernumber,
-    c.yearmonth;
+    month_of_sale;   
     

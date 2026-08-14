@@ -23,6 +23,6 @@ FROM
 GROUP BY
     s.dealernumber,
     s.part_number,
-    month_of_sale;
-
+    month_of_sale
+ 
                
