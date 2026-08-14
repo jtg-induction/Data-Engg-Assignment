@@ -23,6 +23,6 @@ FROM
 GROUP BY
     s.dealernumber,
     s.part_number,
-    month_of_sale
+    to_char(s.calendardate::date,'YYYY FMMonth');
  
                

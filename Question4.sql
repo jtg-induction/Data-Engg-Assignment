@@ -18,6 +18,5 @@ FROM
     sales s   
 GROUP BY
     dealernumber,
-    month_of_sale;
-    
+    to_char(s.calendardate::date,'YYYY FMMonth');
     

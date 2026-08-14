@@ -5,7 +5,7 @@
 --          d. Tier 4: If Monthly Sales > 125% of objective
 
 
---cost time = 55.7s
+--cost time = 54.5s
 
 SELECT
     s.dealernumber,
@@ -23,9 +23,9 @@ INNER JOIN
 INNER JOIN
     parts p ON s.part_number = p.part_number
 WHERE
-    LOWER(p.part_description) NOT LIKE '%tire%'
+    p.part_category_2 NOT ILIKE '%tires%'
 GROUP BY
     s.dealernumber,
     o.sales_obj,
-    month_of_sale;
+    to_char(s.calendardate::date,'YYYY FMMonth')
     
