@@ -6,31 +6,30 @@ WITH region_delear AS(
         e.region,
         s.dealernumber,
         e.dealername,
-        c.yearmonth,
+        to_char(s.calendardate::date,'YYYY FMMonth') AS month_of_sales,
         SUM(s.value) AS total_sales
     FROM
         sales s 
-    INNER JOIN
-        calendar c ON s.calendardate = c.calendardate::date
     INNER JOIN
         entity e ON s.dealernumber = e.dealernumber
     INNER JOIN
         parts p ON s.part_number = p.part_number
     WHERE
-        p.part_description NOT LIKE '%tire%'
+        p.part_category_2 NOT ILIKE '%tires%'
     GROUP BY
         e.region,
         s.dealernumber,
         e.dealername,
-        c.yearmonth          
+        to_char(s.calendardate::date,'YYYY FMMonth')
+                 
 )
 
 SELECT
     d1.region,
     d1.dealernumber,
     d1.dealername,
-    d1.yearmonth,
-    d1.total_sales,
+    d1.month_of_sales,
+    d1.total_sales
 FROM
     region_delear d1
 WHERE
@@ -40,7 +39,7 @@ WHERE
         FROM
             region_delear d2
         WHERE
-            d2.region = d1.region AND d2.yearmonth = d1.yearmonth AND d2.total_sales > d1.total_sales
+            d2.region = d1.region AND d2.month_of_sales = d1.month_of_sales AND d2.total_sales > d1.total_sales
     )
 ORDER BY
     d1.region,

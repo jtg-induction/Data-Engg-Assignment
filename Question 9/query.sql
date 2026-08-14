@@ -2,19 +2,17 @@
 
 SELECT
     s.dealernumber,
-    c.yearmonth,
+    to_char(s.calendardate::date,'YYYY FMMonth') AS month_of_sale,
     Sum(s.units) * 3 AS ties_incentive
 FROM
     sales s     
 INNER JOIN
-    calendar c ON s.calendardate = c.calendardate::date
-INNER JOIN
     parts p ON s.part_number = p.part_number
 WHERE
-    LOWER(p.part_description) LIKE '%tire%'
+    p.part_category_2 ILIKE '%tires%'
 GROUP BY
     s.dealernumber,
-    c.yearmonth
+    to_char(s.calendardate::date,'YYYY FMMonth')
 ORDER BY
     SUM(s.units) DESC    
 LIMIT 10    

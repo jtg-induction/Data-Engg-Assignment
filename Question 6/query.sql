@@ -8,7 +8,7 @@
 
 SELECT
     s.dealernumber,
-    c.yearmonth as month_of_incentive,
+    to_char(s.calendardate::date,'YYYY FMMonth') as month_of_incentive,
     CASE 
         WHEN SUM(s.value) < (0.9 * o.sales_obj::numeric) THEN 0
         WHEN SUM(s.value) >= (0.9 * o.sales_obj::numeric) AND (SUM(s.value) < o.sales_obj::numeric) THEN 0.05 * SUM(s.value)
@@ -16,16 +16,14 @@ SELECT
         ELSE 0.05 * SUM(s.value) + 0.06 * (Sum(s.value) - o.sales_obj::numeric) + 0.07 * (SUM(s.value) - 1.25 * o.sales_obj::numeric) 
     END AS parts_incentive
 FROM
-    sales s 
-INNER JOIN
-    calendar c ON s.calendardate = c.calendardate::date      
+    sales s      
 INNER JOIN     
-    objectives o ON s.dealernumber = o.dealer AND o.month = c.yearmonthsort
+    objectives o ON s.dealernumber = o.dealer AND o.month = to_char(s.calendardate::date,'YYYYMM')
 INNER JOIN
     parts p ON s.part_number = p.part_number
 WHERE
-    LOWER(p.part_description) NOT LIKE '%tire%'
+    p.part_category_2 NOT ILIKE '%tires%'
 GROUP BY
     s.dealernumber,
-    c.yearmonth,
-    o.sales_obj;
+    o.sales_obj,
+    to_char(s.calendardate::date,'YYYY FMMonth');
