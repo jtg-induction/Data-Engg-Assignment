@@ -1,114 +1,128 @@
-WITH total_parts_incentive AS (
+WITH sales_base AS (
     SELECT
         s.dealernumber,
-        to_char(s.calendardate :: date, 'YYYY FMMonth') AS month_of_incentive,
-        CASE
-            WHEN SUM(s.value) < (0.9 * o.sales_obj :: numeric) THEN 0
-            WHEN SUM(s.value) >= (0.9 * o.sales_obj :: numeric)
-            AND (SUM(s.value) < o.sales_obj :: numeric) THEN 0.05 * SUM(s.value)
-            WHEN SUM(s.value) >= o.sales_obj :: numeric
-            AND SUM(s.value) <= (1.25 * o.sales_obj :: numeric) THEN 0.05 * SUM(s.value) + 0.06 * (SUM(s.value) - o.sales_obj :: numeric)
-            ELSE 0.05 * SUM(s.value) + 0.06 * (Sum(s.value) - o.sales_obj :: numeric) + 0.07 * (SUM(s.value) - 1.25 * o.sales_obj :: numeric)
-        END AS parts_incentive
+        s.part_number,
+        s.value,
+        s.units,
+        p.part_category_2,
+        p.part_description,
+        s.calendardate,
+        o.sales_obj :: NUMERIC AS sales_obj,
+        o.tires_tier_1_obj :: NUMERIC AS tires_tier_1_obj,
+        o.tires_tier_2_obj :: NUMERIC AS tires_tier_2_obj,
+        o.tires_tier_3_obj :: NUMERIC AS tires_tier_3_obj
     FROM
         sales s
+        INNER JOIN parts p ON s.part_number = p.part_number
         INNER JOIN objectives o ON s.dealernumber = o.dealer
         AND o.month = to_char(s.calendardate :: date, 'YYYYMM')
-        INNER JOIN parts p ON s.part_number = p.part_number
+),
+total_parts_incentive AS (
+    SELECT
+        dealernumber,
+        to_char(calendardate :: date, 'YYYY FMMonth') AS month_of_incentive,
+        CASE
+            WHEN SUM(value) < (0.9 * sales_obj :: numeric) THEN 0
+            WHEN SUM(value) >= (0.9 * sales_obj :: numeric)
+            AND (SUM(value) < sales_obj :: numeric) THEN 0.05 * SUM(value)
+            WHEN SUM(value) >= sales_obj :: numeric
+            AND SUM(value) <= (1.25 * sales_obj :: numeric) THEN 0.05 * SUM(value) + 0.06 * (SUM(value) - sales_obj :: numeric)
+            ELSE 0.05 * SUM(value) + 0.06 * (Sum(value) - sales_obj :: numeric) + 0.07 * (SUM(value) - 1.25 * sales_obj :: numeric)
+        END AS parts_incentive
+    FROM
+        sales_base
     WHERE
-        p.part_category_2 NOT ILIKE '%tires%'
+        part_category_2 NOT ILIKE '%tires%'
     GROUP BY
-        s.dealernumber,
-        o.sales_obj,
-        to_char(s.calendardate :: date, 'YYYY FMMonth')
+        dealernumber,
+        sales_obj,
+        to_char(calendardate :: date, 'YYYY FMMonth')
 ),
 additional_incentive_for_top_5 AS (
-    WITH region_delear AS(
+    WITH region_dealer AS(
         SELECT
             e.region,
-            s.dealernumber,
+            sb.dealernumber,
             e.dealername,
-            to_char(s.calendardate :: date, 'YYYY FMMonth') AS month_of_sales,
-            SUM(s.value) AS total_sales
+            to_char(sb.calendardate :: date, 'YYYY FMMonth') AS month_of_sales,
+            SUM(sb.value) AS total_sales
         FROM
-            sales s
-            INNER JOIN entity e ON s.dealernumber = e.dealernumber
-            INNER JOIN parts p ON s.part_number = p.part_number
+            sales_base sb
+            INNER JOIN entity e ON sb.dealernumber = e.dealernumber
         WHERE
-            p.part_category_2 NOT ILIKE '%tires%'
+            sb.part_category_2 NOT ILIKE '%tires%'
         GROUP BY
             e.region,
-            s.dealernumber,
+            sb.dealernumber,
             e.dealername,
-            to_char(s.calendardate :: date, 'YYYY FMMonth')
+            to_char(sb.calendardate :: date, 'YYYY FMMonth')
+    ),
+    dealer_rank AS (
+        SELECT
+            *,
+            DENSE_RANK() OVER(
+                PARTITION BY region,
+                month_of_sales
+                ORDER BY
+                    total_sales DESC
+            ) AS rn
+        FROM
+            region_dealer
     )
     SELECT
-        d1.region,
-        d1.dealernumber,
-        d1.dealername,
-        d1.month_of_sales,
-        d1.total_sales,
+        region,
+        dealernumber,
+        dealername,
+        month_of_sales,
+        total_sales,
         300 AS additional_incentive
     FROM
-        region_delear d1
+        dealer_rank
     WHERE
-        5 > (
-            SELECT
-                COUNT(*)
-            FROM
-                region_delear d2
-            WHERE
-                d2.region = d1.region
-                AND d2.month_of_sales = d1.month_of_sales
-                AND d2.total_sales > d1.total_sales
-        )
+        rn <= 5
     ORDER BY
-        d1.region,
-        d1.total_sales DESC
+        region,
+        total_sales DESC
 ),
 tires_incentive AS (
     SELECT
-        s.dealernumber,
-        to_char(s.calendardate :: date, 'YYYY FMMonth') AS month_of_incentive,
+        dealernumber,
+        to_char(calendardate :: date, 'YYYY FMMonth') AS month_of_incentive,
         CASE
-            WHEN SUM(s.units) >= o.tires_tier_3_obj :: numeric THEN 250
-            WHEN SUM(s.units) >= o.tires_tier_2_obj :: numeric THEN 150
-            WHEN SUM(s.units) >= o.tires_tier_1_obj :: numeric THEN 100
+            WHEN SUM(units) >= tires_tier_3_obj :: numeric THEN 250
+            WHEN SUM(units) >= tires_tier_2_obj :: numeric THEN 150
+            WHEN SUM(units) >= tires_tier_1_obj :: numeric THEN 100
             ELSE 0
         END AS tires_incentive
     FROM
-        sales s
-        INNER JOIN objectives o ON s.dealernumber = o.dealer
-        AND o.month = to_char(s.calendardate :: date, 'YYYYMM')
-        INNER JOIN parts p ON s.part_number = p.part_number
+        sales_base
     WHERE
-        p.part_category_2 ILIKE '%tires%'
+        part_category_2 ILIKE '%tires%'
     GROUP BY
-        s.dealernumber,
-        to_char(s.calendardate :: date, 'YYYY FMMonth'),
-        o.tires_tier_1_obj,
-        o.tires_tier_2_obj,
-        o.tires_tier_3_obj
+        dealernumber,
+        to_char(calendardate :: date, 'YYYY FMMonth'),
+        tires_tier_1_obj,
+        tires_tier_2_obj,
+        tires_tier_3_obj
 ),
 additional_top_10_incentive AS (
     WITH dealers_with_their_rank AS (
         SELECT
-            s.dealernumber AS dealernumber,
-            to_char(s.calendardate :: date, 'YYYY FMMonth') AS month_of_sale,
-            SUM(s.units) AS total_units_sold,
+            dealernumber AS dealernumber,
+            to_char(calendardate :: date, 'YYYY FMMonth') AS month_of_sale,
+            SUM(units) AS total_units_sold,
             ROW_NUMBER() OVER(
-                PARTITION BY to_char(s.calendardate :: date, 'YYYY FMMonth')
+                PARTITION BY to_char(calendardate :: date, 'YYYY FMMonth')
                 ORDER BY
-                    SUM(s.units) DESC
+                    SUM(units) DESC
             ) AS dealers_rank
         FROM
-            sales s
-            INNER JOIN parts p ON s.part_number = p.part_number
+            sales_base
         WHERE
-            p.part_description ILIKE '%Tires%'
+            part_category_2 ILIKE '%tires%'
         GROUP BY
-            to_char(s.calendardate :: date, 'YYYY FMMonth'),
-            s.dealernumber
+            to_char(calendardate :: date, 'YYYY FMMonth'),
+            dealernumber
     )
     SELECT
         month_of_sale,
@@ -124,37 +138,16 @@ additional_top_10_incentive AS (
         total_units_sold DESC
 ),
 eligible_dealers AS (
-    WITH avg_penetration AS (
-        SELECT
-            e.region AS region_of_penetration,
-            to_char(to_date(pe.month, 'MM YYYY'), 'YYYY FMMonth') AS month_of_penetration,
-            AVG(pe.penetration :: numeric) AS avg_penetration_of_the_region
-        FROM
-            entity e
-            INNER JOIN penetration pe ON e.dealernumber = trim(pe.dealer)
-        WHERE
-            e.terminationdate IS NULL
-        GROUP BY
-            e.region,
-            pe.month
-        ORDER BY
-            region ASC,
-            pe.month ASC
-    )
     SELECT
-        pe.dealer,
-        e.region,
+        pe.dealer AS dealer,
         to_char(to_date(pe.month, 'MM YYYY'), 'YYYY FMMonth') AS month_of_eligibility,
-        pe.penetration,
         CASE
-            WHEN pe.penetration :: numeric > 0.9 * ap.avg_penetration_of_the_region THEN 'ELIGIBLE'
+            WHEN pe.penetration :: NUMERIC > 0.9 * AVG(pe.penetration :: NUMERIC) OVER(PARTITION BY e.region, pe.month) THEN 'ELIGIBLE'
             ELSE 'NOT ELIGIBLE'
-        END AS ELIGIBIILITY
+        END AS ELIGIBILITY
     FROM
         penetration pe
-        INNER JOIN entity e ON trim(pe.dealer) = e.dealernumber
-        INNER JOIN avg_penetration ap ON to_char(to_date(pe.month, 'MM YYYY'), 'YYYY FMMonth') = ap.month_of_penetration
-        AND e.region = ap.region_of_penetration
+        INNER JOIN entity e ON e.dealernumber = trim(pe.dealer)
     WHERE
         e.terminationdate IS NULL
 )
@@ -173,4 +166,4 @@ FROM
     LEFT JOIN additional_top_10_incentive t10 ON trim(ed.dealer) = trim(t10.dealernumber)
     AND ed.month_of_eligibility = t10.month_of_sale
 WHERE
-    ed.ELIGIBIILITY = 'ELIGIBLE'
+    ed.eligibility = 'ELIGIBLE';
