@@ -2,28 +2,26 @@
 --    If Tier 1 Obj achieved then $100
 --    If Tier 2 Obj achieved then $150
 --    If Tier 3 Obj achieved then $250
-
 -- cost time = 10.59s
 SELECT
     s.dealernumber,
-    to_char(s.calendardate::date,'YYYY FMMonth') AS month_of_incentive,
-    CASE 
-        WHEN SUM(s.units) >= o.tires_tier_3_obj::numeric THEN '$250'
-        WHEN SUM(s.units) >= o.tires_tier_2_obj::numeric THEN '$150'
-        WHEN SUM(s.units) >= o.tires_tier_1_obj::numeric THEN '$100'
-        ELSE '$0'
-    END as tires_incentive
+    to_char(s.calendardate :: date, 'YYYY FMMonth') AS month_of_incentive,
+    CASE
+        WHEN SUM(s.units) >= o.tires_tier_3_obj :: numeric THEN 250
+        WHEN SUM(s.units) >= o.tires_tier_2_obj :: numeric THEN 150
+        WHEN SUM(s.units) >= o.tires_tier_1_obj :: numeric THEN 100
+        ELSE 0
+    END AS tires_incentive
 FROM
-    sales s      
-INNER JOIN
-    objectives o on s.dealernumber = o.dealer AND o.month = to_char(s.calendardate::date,'YYYYMM')
-INNER JOIN
-    parts p ON s.part_number = p.part_number
+    sales s
+    INNER JOIN objectives o ON s.dealernumber = o.dealer
+    AND o.month = to_char(s.calendardate :: date, 'YYYYMM')
+    INNER JOIN parts p ON s.part_number = p.part_number
 WHERE
     p.part_category_2 ILIKE '%tires%'
 GROUP BY
     s.dealernumber,
-    to_char(s.calendardate::date,'YYYY FMMonth'),
+    to_char(s.calendardate :: date, 'YYYY FMMonth'),
     o.tires_tier_1_obj,
     o.tires_tier_2_obj,
-    o.tires_tier_3_obj;                      
+    o.tires_tier_3_obj;
