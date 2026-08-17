@@ -1,3 +1,4 @@
+--cost time = 2m 15s
 WITH sales_base AS (
     SELECT
         s.dealernumber,

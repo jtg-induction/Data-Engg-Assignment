@@ -2,6 +2,7 @@
 -- RSD = YoY % Growth of Dealer / YoY % Growth of Area
 -- YoY % Growth = (Current Month Sales (in $) - Last Year Same Month Sales (in $)) / Last Year Same Month Sales (in $)
 -- For Area YoY % Growth use only active dealers.
+-- cost time = 35s
 WITH dealer_sales AS (
     SELECT
         s.dealernumber,
