@@ -34,4 +34,18 @@ FROM
 WHERE
     e.terminationdate IS NULL
 LIMIT
-    10
+    10;
+
+-- more optmised using window functions 
+SELECT
+    pe.dealer AS dealer,
+    to_char(to_date(pe.month, 'MM YYYY'), 'YYYY FMMonth') AS month_of_penetration,
+    CASE
+        WHEN pe.penetration :: NUMERIC > 0.9 * AVG(pe.penetration :: NUMERIC) OVER(PARTITION BY e.region, pe.month) THEN 'ELIGIBLE'
+        ELSE 'NOT ELIGIBLE'
+    END AS ELIGIBILITY
+FROM
+    penetration pe
+    INNER JOIN entity e ON e.dealernumber = trim(pe.dealer)
+WHERE
+    e.terminationdate IS NULL
