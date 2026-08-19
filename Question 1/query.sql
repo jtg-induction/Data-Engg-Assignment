@@ -24,5 +24,5 @@ GROUP BY
     s.dealernumber,
     s.part_number,
     to_char(s.calendardate::date,'YYYY FMMonth');
-
+ 
                

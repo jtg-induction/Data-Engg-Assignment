@@ -1,45 +1,24 @@
 -- Q3 -> Total Sales for a dealership.
+-- cost time = 2.2s
 
 SELECT
     dealernumber,
-    SUM(val) AS total_sales
+    SUM(value) AS total_sales
 FROM 
     sales
 GROUP BY
     dealernumber; 
 
-  
--- with more data points for dealer 
-SELECT
-    e.dealernumber,
-    e.dealername,
-    e.division,
-    e.region,
-    SUM(s.val) AS total_sales
-FROM
-    entity e
-INNER JOIN
-    sales s ON e.dealernumber = s.dealernumber
-GROUP BY
-    e.dealernumber,
-    e.dealername,
-    e.division,
-    e.region
 
--- with all the dealers whether they have done any sales or not 
+-- with monthly wise sales
+-- cost time 8.4s
 SELECT
-    e.dealernumber,
-    e.dealername,
-    e.division,
-    e.region,
-    SUM(s.val) AS total_sales
-FROM
-    entity e
-LEFT JOIN
-    sales s ON e.dealernumber = s.dealernumber
+    s.dealernumber,
+    SUM(s.value) AS total_sales,
+    to_char(s.calendardate::date,'YYYY FMMonth') as month_of_sale
+FROM 
+    sales s    
 GROUP BY
-    e.dealernumber,
-    e.dealername,
-    e.division,
-    e.region
-     
+    dealernumber,
+    to_char(s.calendardate::date,'YYYY FMMonth');   
+    
