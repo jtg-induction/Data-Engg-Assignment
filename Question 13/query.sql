@@ -84,7 +84,7 @@ WITH dealer_sales AS (
         SUM(s.value) AS total_sales
     FROM
         sales s
-        INNER JOIN entity e ON s.dealernumber = e.dealernumber
+        JOIN entity e ON s.dealernumber = e.dealernumber
     WHERE
         terminationdate IS NULL
     GROUP BY
@@ -109,7 +109,7 @@ dealeryoy AS (
         END AS dealer_yoy
     FROM
         dealer_sales ds1
-        LEFT JOIN dealer_sales ds2 ON ds1.dealernumber = ds2.dealernumber
+        JOIN dealer_sales ds2 ON ds1.dealernumber = ds2.dealernumber
         AND to_date(ds1.month_of_sale, 'YYYY Month') = to_date(ds2.month_of_sale, 'YYYY Month') + INTERVAL '1 Year'
 ),
 regionyoy AS(
@@ -125,7 +125,7 @@ regionyoy AS(
         END AS region_yoy
     FROM
         dealer_sales ds1
-        LEFT JOIN dealer_sales ds2 ON ds1.dealernumber = ds2.dealernumber
+        JOIN dealer_sales ds2 ON ds1.dealernumber = ds2.dealernumber
         AND to_date(ds1.month_of_sale, 'YYYY Month') = to_date(ds2.month_of_sale, 'YYYY Month') + INTERVAL '1 Year'
     GROUP BY
         ds1.region,
@@ -148,7 +148,7 @@ SELECT
     END AS rsd
 FROM
     dealeryoy d
-    LEFT JOIN regionyoy r ON d.region = r.region
+    JOIN regionyoy r ON d.region = r.region
     AND d.month_of_sale = r.month_of_sale;
 
 --  QUERY EXECUTION PLAN 
