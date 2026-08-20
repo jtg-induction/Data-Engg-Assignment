@@ -15,3 +15,19 @@ CREATE INDEX IF NOT EXISTS idx_objective_sales ON objectives(sales_obj);
 CREATE INDEX idx_sales_dealer_data ON sales(dealernumber, calendardate);
 
 CREATE INDEX IF NOT EXISTS idx_objectives_dealer_month ON objectives(dealer, MONTH);
+
+CREATE INDEX IF NOT EXISTS idx_penetration_month_dealer ON penetration(MONTH, dealer);
+
+ANALYZE sales;
+
+ANALYZE parts;
+
+ANALYZE objectives;
+
+ANALYZE penetration;
+
+cluster sales USING idx_sales_dealer_data;
+
+CREATE INDEX idx_sales_cover ON sales(dealernumber, calendardate) include (part_number, value, units);
+
+CREATE INDEX idx_parts_cover ON parts(part_number) include (part_category_2)
