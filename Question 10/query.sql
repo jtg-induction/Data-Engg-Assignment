@@ -70,18 +70,20 @@ FROM
     penetration pe
     INNER JOIN entity e ON e.dealernumber = trim(pe.dealer)
 WHERE
-    e.terminationdate IS NULL -- QUERY EXECUTION PLAN 
-    -- "WindowAgg  (cost=1716.35..2578.87 rows=12778 width=130) (actual time=57.320..137.188 rows=27214 loops=1)"
-    -- "  ->  Sort  (cost=1716.35..1748.30 rows=12778 width=43) (actual time=57.149..60.104 rows=27214 loops=1)"
-    -- "        Sort Key: e.region, pe.month"
-    -- "        Sort Method: quicksort  Memory: 2682kB"
-    -- "        ->  Hash Join  (cost=60.69..844.80 rows=12778 width=43) (actual time=1.467..29.565 rows=27214 loops=1)"
-    -- "              Hash Cond: (TRIM(BOTH FROM pe.dealer) = e.dealernumber)"
-    -- "              ->  Seq Scan on penetration pe  (cost=0.00..515.89 rows=28089 width=37) (actual time=0.635..6.886 rows=28089 loops=1)"
-    -- "              ->  Hash  (cost=47.39..47.39 rows=1064 width=12) (actual time=0.802..0.803 rows=1064 loops=1)"
-    -- "                    Buckets: 2048  Batches: 1  Memory Usage: 63kB"
-    -- "                    ->  Seq Scan on entity e  (cost=0.00..47.39 rows=1064 width=12) (actual time=0.021..0.510 rows=1064 loops=1)"
-    -- "                          Filter: (terminationdate IS NULL)"
-    -- "                          Rows Removed by Filter: 1275"
-    -- "Planning Time: 0.440 ms"
-    -- "Execution Time: 138.782 ms"
+    e.terminationdate IS NULL;
+
+-- QUERY EXECUTION PLAN 
+-- "WindowAgg  (cost=1716.35..2578.87 rows=12778 width=130) (actual time=57.320..137.188 rows=27214 loops=1)"
+-- "  ->  Sort  (cost=1716.35..1748.30 rows=12778 width=43) (actual time=57.149..60.104 rows=27214 loops=1)"
+-- "        Sort Key: e.region, pe.month"
+-- "        Sort Method: quicksort  Memory: 2682kB"
+-- "        ->  Hash Join  (cost=60.69..844.80 rows=12778 width=43) (actual time=1.467..29.565 rows=27214 loops=1)"
+-- "              Hash Cond: (TRIM(BOTH FROM pe.dealer) = e.dealernumber)"
+-- "              ->  Seq Scan on penetration pe  (cost=0.00..515.89 rows=28089 width=37) (actual time=0.635..6.886 rows=28089 loops=1)"
+-- "              ->  Hash  (cost=47.39..47.39 rows=1064 width=12) (actual time=0.802..0.803 rows=1064 loops=1)"
+-- "                    Buckets: 2048  Batches: 1  Memory Usage: 63kB"
+-- "                    ->  Seq Scan on entity e  (cost=0.00..47.39 rows=1064 width=12) (actual time=0.021..0.510 rows=1064 loops=1)"
+-- "                          Filter: (terminationdate IS NULL)"
+-- "                          Rows Removed by Filter: 1275"
+-- "Planning Time: 0.440 ms"
+-- "Execution Time: 138.782 ms"

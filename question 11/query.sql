@@ -357,6 +357,181 @@ FROM
 WHERE
     ed.ELIGIBILITY = 'ELIGIBLE';
 
+WITH eligible_dealers AS (
+    SELECT
+        e.dealernumber AS dealer,
+        to_char(to_date(pe.month, 'MM YYYY'), 'YYYY FMMonth') AS month_of_eligibility,
+        CASE
+            WHEN pe.penetration :: NUMERIC > 0.9 * AVG(pe.penetration :: NUMERIC) OVER(PARTITION BY e.region, pe.month) THEN 'ELIGIBLE'
+            ELSE 'NOT ELIGIBLE'
+        END AS ELIGIBILITY
+    FROM
+        penetration pe
+        INNER JOIN entity e ON e.dealernumber = trim(pe.dealer)
+    WHERE
+        e.terminationdate IS NULL
+        AND trim(pe.dealer) IS NOT NULL
+),
+eligible_dealers_data AS (
+    SELECT
+        s.dealernumber,
+        s.part_number,
+        s.value,
+        s.units,
+        e.region,
+        e.dealername,
+        p.part_category_2,
+        s.calendardate,
+        o.sales_obj :: NUMERIC AS sales_obj,
+        o.tires_tier_1_obj :: NUMERIC AS tires_tier_1_obj,
+        o.tires_tier_2_obj :: NUMERIC AS tires_tier_2_obj,
+        o.tires_tier_3_obj :: NUMERIC AS tires_tier_3_obj,
+        ed.month_of_eligibility,
+        ed.eligibility
+    FROM
+        eligible_dealers ed
+        JOIN sales s ON trim(ed.dealer) = s.dealernumber
+        AND ed.month_of_eligibility = to_char(s.calendardate :: date, 'YYYY FMMonth')
+        INNER JOIN parts p ON s.part_number = p.part_number
+        INNER JOIN objectives o ON s.dealernumber = o.dealer
+        AND o.month = to_char(s.calendardate :: date, 'YYYYMM')
+        INNER JOIN entity e ON s.dealernumber = e.dealernumber
+    WHERE
+        ed.eligibility = 'ELIGIBLE'
+),
+dealers_sales_data AS(
+    SELECT
+        dealernumber,
+        MAX(region) AS region,
+        Max(dealername) AS dealername,
+        month_of_eligibility,
+        MAX(sales_obj) AS sales_obj,
+        MAX(tires_tier_1_obj) AS tires_tier_1_obj,
+        MAX(tires_tier_2_obj) AS tires_tier_2_obj,
+        MAX(tires_tier_3_obj) AS tires_tier_3_obj,
+        SUM(value) FILTER(
+            WHERE
+                part_category_2 NOT ILIKE '%tires%'
+        ) AS dealer_sales_without_tires,
+        SUM(units) FILTER(
+            WHERE
+                part_category_2 ILIKE '%tires%'
+        ) AS dealer_sales_with_tires
+    FROM
+        eligible_dealers_data
+    GROUP BY
+        dealernumber,
+        month_of_eligibility
+),
+dealers_ranks AS (
+    SELECT
+        dealernumber,
+        dealername,
+        region,
+        month_of_eligibility,
+        dealer_sales_without_tires,
+        dealer_sales_with_tires,
+        sales_obj,
+        tires_tier_1_obj,
+        tires_tier_2_obj,
+        tires_tier_3_obj,
+        DENSE_RANK() OVER(
+            PARTITION BY region,
+            month_of_eligibility
+            ORDER BY
+                dealer_sales_without_tires DESC
+        ) AS sales_rank,
+        ROW_NUMBER() OVER(
+            PARTITION BY month_of_eligibility
+            ORDER BY
+                dealer_sales_with_tires DESC
+        ) AS tires_rank
+    FROM
+        dealers_sales_data
+),
+dealers_incentives AS (
+    SELECT
+        dealernumber,
+        dealername,
+        month_of_eligibility,
+        dealer_sales_without_tires,
+        dealer_sales_with_tires,
+        region,
+        sales_obj,
+        tires_tier_1_obj,
+        tires_tier_2_obj,
+        tires_tier_3_obj,
+        sales_rank,
+        tires_rank,
+        CASE
+            WHEN dealer_sales_without_tires < (0.9 * sales_obj :: numeric) THEN 0
+            WHEN dealer_sales_without_tires >= (0.9 * sales_obj :: numeric)
+            AND dealer_sales_without_tires < sales_obj :: numeric THEN 0.05 * dealer_sales_without_tires
+            WHEN dealer_sales_without_tires >= sales_obj :: numeric
+            AND dealer_sales_without_tires <= (1.25 * sales_obj :: numeric) THEN 0.05 * dealer_sales_without_tires + 0.06 * (
+                dealer_sales_without_tires - sales_obj :: numeric
+            )
+            ELSE 0.05 * dealer_sales_without_tires + 0.06 * (
+                dealer_sales_without_tires - sales_obj :: numeric
+            ) + 0.07 * (
+                dealer_sales_without_tires - 1.25 * sales_obj :: numeric
+            )
+        END AS parts_incentive,
+        CASE
+            WHEN dealer_sales_with_tires >= tires_tier_3_obj :: numeric THEN 250
+            WHEN dealer_sales_with_tires >= tires_tier_2_obj :: numeric THEN 150
+            WHEN dealer_sales_with_tires >= tires_tier_1_obj :: numeric THEN 100
+            ELSE 0
+        END AS tires_incentive
+    FROM
+        dealers_ranks
+),
+dealers_with_additional_incentives AS (
+    SELECT
+        dealernumber,
+        dealername,
+        month_of_eligibility,
+        region,
+        dealer_sales_with_tires,
+        parts_incentive,
+        tires_incentive,
+        sales_rank,
+        tires_rank,
+        CASE
+            WHEN sales_rank <= 5 THEN 300
+            ELSE 0
+        END AS additional_incentive,
+        CASE
+            WHEN tires_rank <= 10 THEN dealer_sales_with_tires * 3
+            ELSE 0
+        END AS additional_top_10_incentive
+    FROM
+        dealers_incentives
+)
+SELECT
+    da.dealernumber AS dealer_number,
+    da.dealername AS dealer_name,
+    month_of_eligibility,
+    region AS dealer_region,
+    date_trunc(
+        'month',
+        to_date(month_of_eligibility, 'YYYY Month')
+    ) :: date AS from_period,
+    (
+        date_trunc(
+            'month',
+            to_date(month_of_eligibility, 'YYYY Month')
+        ) + INTERVAL '1 month' - INTERVAL '1 day'
+    ) :: date AS to_period,
+    1 AS compute_period,
+    (
+        parts_incentive + tires_incentive + additional_incentive + additional_top_10_incentive
+    ) AS total_incentive
+FROM
+    dealers_with_additional_incentives da
+LIMIT
+    5;
+
 --  QUERY EXECUTION PLAN 
 -- "Limit  (cost=11134078.25..11136926.65 rows=20 width=71) (actual time=155883.331..162326.372 rows=20 loops=1)"
 -- "  CTE sales_base"

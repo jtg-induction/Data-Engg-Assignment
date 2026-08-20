@@ -151,6 +151,85 @@ FROM
     JOIN regionyoy r ON d.region = r.region
     AND d.month_of_sale = r.month_of_sale;
 
+WITH dealer_sales AS (
+    SELECT
+        s.dealernumber,
+        to_char(s.calendardate :: date, 'YYYY FMMonth') AS month_of_sale,
+        date_trunc('month', s.calendardate) :: date AS from_period,
+        (
+            date_trunc('month', s.calendardate) + INTERVAL '1 month' - INTERVAL '1 day'
+        ) :: date AS to_period,
+        e.region AS region,
+        SUM(s.value) AS total_sales
+    FROM
+        sales s
+        JOIN entity e ON s.dealernumber = e.dealernumber
+    WHERE
+        terminationdate IS NULL
+    GROUP BY
+        s.dealernumber,
+        e.region,
+        to_char(s.calendardate :: date, 'YYYY FMMonth'),
+        date_trunc('month', s.calendardate)
+),
+dealeryoy AS (
+    SELECT
+        ds1.dealernumber,
+        ds1.month_of_sale,
+        ds1.from_period,
+        ds1.to_period,
+        ds1.region,
+        ds1.total_sales,
+        ds2.total_sales AS last_year_sales,
+        CASE
+            WHEN ds2.total_sales IS NULL
+            OR ds2.total_sales = 0 THEN 0
+            ELSE (ds1.total_sales - ds2.total_sales) / ds2.total_sales
+        END AS dealer_yoy
+    FROM
+        dealer_sales ds1
+        JOIN dealer_sales ds2 ON ds1.dealernumber = ds2.dealernumber
+        AND to_date(ds1.month_of_sale, 'YYYY Month') = to_date(ds2.month_of_sale, 'YYYY Month') + INTERVAL '1 Year'
+),
+regionyoy AS (
+    SELECT
+        d.region,
+        d.month_of_sale,
+        SUM(d.total_sales) AS current_region_sales,
+        SUM(d.last_year_sales) AS last_year_region_sales,
+        CASE
+            WHEN SUM(d.last_year_sales) IS NULL
+            OR SUM(d.last_year_sales) = 0 THEN 0
+            ELSE (
+                SUM(d.total_sales) - SUM(d.last_year_sales)
+            ) / SUM(d.last_year_sales)
+        END AS region_yoy
+    FROM
+        dealeryoy d
+    GROUP BY
+        d.region,
+        d.month_of_sale
+)
+SELECT
+    'JOSH_CLEAN_AUTOMOBILES' AS nation,
+    d.from_period,
+    d.to_period,
+    1 AS compute_period,
+    d.dealernumber AS dealer,
+    d.region AS dealer_region,
+    d.month_of_sale,
+    d.dealer_yoy,
+    r.region_yoy,
+    CASE
+        WHEN r.region_yoy IS NULL
+        OR r.region_yoy = 0 THEN 0
+        ELSE d.dealer_yoy / r.region_yoy
+    END AS rsd
+FROM
+    dealeryoy d
+    JOIN regionyoy r ON d.region = r.region
+    AND d.month_of_sale = r.month_of_sale;
+
 --  QUERY EXECUTION PLAN 
 -- "Merge Left Join  (cost=5804426.29..6325503.88 rows=11317842 width=236) (actual time=16675.251..16677.390 rows=1898 loops=1)"
 -- "  Merge Cond: ((ds1.dealernumber = ds2.dealernumber) AND ((to_date(ds1.month_of_sale, 'YYYY Month'::text)) = ((to_date(ds2.month_of_sale, 'YYYY Month'::text) + '1 year'::interval))))"
