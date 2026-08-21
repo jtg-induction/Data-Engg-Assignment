@@ -14,7 +14,8 @@ FROM
 WHERE
     e.terminationdate IS NULL;
 
--- query with format output    
+-- query with format output 
+-- cost time = 42ms  
 SELECT
     'JOSH_CLEAN_AUTOMOBILES' AS nation,
     pe.dealer AS dealer,

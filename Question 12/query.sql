@@ -1,4 +1,4 @@
---cost time = 2m 15s
+--cost time = 59s
 WITH eligible_dealers AS (
     SELECT
         e.dealernumber AS dealer,

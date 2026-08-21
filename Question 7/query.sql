@@ -47,6 +47,7 @@ ORDER BY
     total_sales DESC;
 
 -- query with format output
+-- cost time = 50s
 WITH region_dealer AS(
     SELECT
         e.region,

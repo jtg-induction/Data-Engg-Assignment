@@ -28,6 +28,7 @@ GROUP BY
     to_char(s.calendardate :: date, 'YYYY FMMonth');
 
 -- query with format output 
+-- cost time = 8s
 SELECT
     'JOSH_CLEAN_AUTOMOBILES' AS nation,
     date_trunc('month', s.calendardate) :: date AS from_period,

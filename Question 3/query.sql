@@ -1,14 +1,4 @@
 -- Q3 -> Total Sales for a dealership.
--- cost time = 2.2s
-SELECT
-    dealernumber,
-    SUM(value) AS total_sales
-FROM
-    sales
-GROUP BY
-    dealernumber;
-
--- with monthly wise sales
 -- cost time 8.4s
 SELECT
     s.dealernumber,
@@ -21,6 +11,7 @@ GROUP BY
     to_char(s.calendardate :: date, 'YYYY FMMonth');
 
 --query with format output 
+-- cost time = 15s
 SELECT
     'JOSH_CLEAN_AUTOMOBILES' AS nation,
     date_trunc('month', s.calendardate) :: date AS from_period,

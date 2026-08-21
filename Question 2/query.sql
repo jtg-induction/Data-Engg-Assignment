@@ -1,16 +1,4 @@
 -- Q2 -> Units sold for each part for a dealership.
--- cost time = 32.7s
-SELECT
-    dealernumber,
-    part_number,
-    SUM(units) AS total_units_sold
-FROM
-    sales
-GROUP BY
-    dealernumber,
-    part_number;
-
--- Monthly wise units sold
 -- cost time = 26.8s
 SELECT
     s.dealernumber,
@@ -25,6 +13,7 @@ GROUP BY
     to_char(s.calendardate :: date, 'YYYY FMMonth');
 
 -- query with format output 
+-- cost time = 239ms
 SELECT
     'JOSH_CLEAN_AUTOMOBILES' AS nation,
     date_trunc('month', s.calendardate) :: date AS from_period,

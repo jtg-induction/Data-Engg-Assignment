@@ -33,6 +33,7 @@ ORDER BY
     total_units_sold DESC;
 
 -- query with format output
+-- cost time = 9s
 WITH dealers_with_their_rank AS (
     SELECT
         s.dealernumber AS dealernumber,

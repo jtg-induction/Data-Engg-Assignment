@@ -27,6 +27,7 @@ GROUP BY
     o.tires_tier_3_obj;
 
 -- query with format output
+-- cost time = 55s
 SELECT
     'JOSH_CLEAN_AUTOMOBILES' AS nation,
     date_trunc('month', s.calendardate) :: date AS from_period,
